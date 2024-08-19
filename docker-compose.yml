@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  deno-app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ${KV_DATA-"./data"}:/app/${KV_DATA}
+    restart: always
