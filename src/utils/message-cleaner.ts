@@ -23,7 +23,7 @@ export class MessageCleaner {
 
     while (deletableCount < limit) {
       const messages = await this.bot.helpers.getMessages(this.channelId, {
-        limit: 10,
+        limit: 50,
         before: lastMessageId, // Fetch messages before the last message ID in the previous batch
       });
 
