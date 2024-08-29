@@ -63,12 +63,12 @@ export class MessageCleaner {
   logMessages(
     messages: { id: bigint; age: number; content: string }[],
   ): void {
-    log.info("Messages with age in seconds and content:");
+    log.info("Messages with age in days and content:");
     messages.forEach((msg, index) => {
       log.info(
         `Message ${index + 1}: Age - ${
           msg.age.toFixed(2)
-        } seconds, Content - "${msg.content}" (${msg.id})`,
+        } days, Content - "${msg.content}" (${msg.id})`,
       );
     });
   }
