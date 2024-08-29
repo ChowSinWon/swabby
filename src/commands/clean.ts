@@ -2,17 +2,19 @@ import { ApplicationCommandOptionTypes, ApplicationCommandTypes } from "deps";
 import { logger } from "utils/logger.ts";
 import { send, sendInteractiveResponse } from "utils/tools.ts";
 import { createCommand } from "commands/mod.ts";
+import { MessageCleaner } from "utils/message-cleaner.ts";
 
 const log = logger({ name: "Command: Clean" });
 
 createCommand({
   name: "clean",
-  description: "Scrub the last X messages from the channel.",
+  description:
+    "Scrub the last X messages from the channel. Default: 10, Maximum: 50",
   type: ApplicationCommandTypes.ChatInput,
   options: [
     {
       name: "count",
-      description: "Number of messages to delete. Default: 10, Maximum: 50",
+      description: "Number of messages to delete",
       type: ApplicationCommandOptionTypes.Integer,
       required: false,
     },
@@ -84,99 +86,60 @@ createCommand({
       return;
     }
 
-    let sweepingMessage;
+    const messageCleaner = new MessageCleaner(bot, channelId);
+
     try {
+      const messages = await bot.helpers.getMessages(channelId, {
+        limit: count,
+      });
+
+      if (!messages || messages.size === 0) {
+        await send(
+          bot,
+          interaction,
+          "No messages found in this channel.",
+          true,
+        );
+
+        return;
+      }
+
+      const messagesWithAge = await messageCleaner.fetchMessages(count, days);
+      messageCleaner.logMessages(messagesWithAge);
+
       await sendInteractiveResponse(
         bot,
         interaction,
         "sweeping...",
       );
 
-      const lastMessages = await bot.helpers.getMessages(channelId, {
-        limit: 10,
+      const { successCount, errorCount } = await messageCleaner.deleteMessages(
+        messagesWithAge,
+      );
+
+      const myMessages = await bot.helpers.getMessages(channelId, {
+        limit: 1,
       });
-      for (const [_key, msg] of lastMessages) {
-        if (msg.content === "sweeping...") {
-          sweepingMessage = msg;
-          break;
-        }
+
+      const [myMessageId, _value] = myMessages?.entries()?.next()?.value;
+
+      if (myMessageId) {
+        await bot.helpers.deleteMessage(channelId, myMessageId);
       }
 
-      const now = Date.now();
-      const ageLimit = days * 24 * 60 * 60 * 1000; // Convert days to milliseconds
-      let fetchedCount = 0;
-      let totalDeleted = 0;
-      let lastMessageId = sweepingMessage?.id;
-
-      while (fetchedCount < count) {
-        const messages = await bot.helpers.getMessages(channelId, {
-          limit: Math.min(count - fetchedCount, 100), // Fetch in batches
-          before: lastMessageId,
-        });
-
-        if (!messages || messages.size === 0) {
-          break; // No more messages to fetch
-        }
-
-        const filteredMessages = messages.filter((msg) => {
-          const messageAge = now - new Date(msg.timestamp).getTime();
-          return messageAge >= ageLimit;
-        });
-
-        // If we have messages older than the threshold, delete them
-        for (const [key, msg] of filteredMessages) {
-          if (fetchedCount >= count) {
-            break;
-          }
-          try {
-            await bot.helpers.deleteMessage(channelId, key);
-            fetchedCount++;
-            totalDeleted++;
-          } catch (deleteError) {
-            console.error(
-              `Failed to delete message ${key} (\`${msg}\`):`,
-              deleteError,
-            );
-          }
-        }
-
-        // Update lastMessageId for the next fetch
-        lastMessageId = messages.last()?.id;
-
-        if (filteredMessages.size === 0 && fetchedCount === 0) {
-          // If no messages matched the age criteria, break the loop
-          break;
-        }
-      }
-
-      if (sweepingMessage) {
-        // remove "sweeping..." message
-        await bot.helpers.deleteMessage(channelId, sweepingMessage.id);
-      }
-
-      if (totalDeleted === 0) {
-        await send(
-          bot,
-          interaction,
-          "No messages matched the criteria for deletion.",
-          true,
-          true,
-        );
-
-        return;
-      } else {
-        await send(
-          bot,
-          interaction,
-          `Deck has been scrubbed - have fun!\n${totalDeleted} message${
-            totalDeleted > 1 ? "s" : ""
+      await send(
+        bot,
+        interaction,
+        errorCount > 0
+          ? `Deleted only ${successCount} of ${messages.size} messages.`
+          : `Deck has been scrubbed - have fun!\n${successCount} message${
+            successCount > 1 ? "s" : ""
           } removed.`,
-          true,
-          true,
-        );
-      }
+        true,
+        true,
+      );
     } catch (error) {
-      log.error(error.toString());
+      log.error(error);
 
       await send(
         bot,
