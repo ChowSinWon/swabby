@@ -1,4 +1,4 @@
-FROM denoland/deno:1.46.3 AS builder
+FROM denoland/deno:2.1.7 AS builder
 
 # Set the working directory in the container
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY ../src ./src
 RUN deno task cache
 
 # Use a smaller final image
-FROM denoland/deno:1.46.3
+FROM denoland/deno:2.1.7
 
 # Set the working directory in the container
 WORKDIR /app

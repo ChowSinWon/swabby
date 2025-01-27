@@ -1,8 +1,8 @@
 {
   "tasks": {
-    "swabby": "deno run --allow-read --allow-write --allow-env --allow-net --unstable-kv --unstable-cron mod.ts",
-    "cache": "deno cache --lock=deno.lock mod.ts",
-    "dev": "deno run --watch --allow-read --allow-write --allow-env --allow-net --unstable-kv --unstable-cron mod.ts"
+    "swabby": "deno run --allow-read --allow-write --allow-env --allow-net --unstable-kv --unstable-cron --allow-import mod.ts",
+    "cache": "deno cache --lock=deno.lock --allow-import mod.ts",
+    "dev": "deno run --watch --allow-read --allow-write --allow-env --allow-net --unstable-kv --unstable-cron --allow-import mod.ts"
   },
   "imports": {
     "mod": "./mod.ts",
