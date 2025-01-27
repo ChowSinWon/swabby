@@ -3,6 +3,12 @@ import { Bot } from "deps";
 
 const log = logger({ name: "Class: MessageCleaner" });
 
+interface FetchableMessage {
+  id: bigint;
+  age: number;
+  content: string;
+}
+
 export class MessageCleaner {
   private bot: Bot;
   private channelId: bigint;
@@ -15,26 +21,26 @@ export class MessageCleaner {
   async fetchMessages(
     limit: number,
     days: number = 0,
-  ): Promise<{ id: bigint; age: number; content: string }[]> {
+  ): Promise<FetchableMessage[]> {
     const now = Date.now();
-    const result = [];
+    const result: FetchableMessage[] = [];
     let deletableCount = 0;
     let lastMessageId: bigint | undefined;
 
     while (deletableCount < limit) {
       const messages = await this.bot.helpers.getMessages(this.channelId, {
         limit: 50,
-        before: lastMessageId, // Fetch messages before the last message ID in the previous batch
+        before: lastMessageId,
       });
 
       if (!messages || messages.size === 0) {
-        break; // No more messages to fetch
+        break;
       }
 
       for (const msg of messages.values()) {
         const timestamp = Number(msg.timestamp);
         const age = (now - timestamp) / 1000 / 60 / 60 / 24;
-        const canDelete = age >= days; // Check if the message is old enough to delete
+        const canDelete = age >= days;
 
         if (canDelete) {
           result.push({
@@ -45,24 +51,22 @@ export class MessageCleaner {
 
           deletableCount++;
           if (deletableCount >= limit) {
-            break; // Stop if we've reached the limit of deletable messages
+            break;
           }
         }
       }
 
-      lastMessageId = [...messages.keys()].pop(); // Update lastMessageId to the ID of the last message in the batch
+      lastMessageId = [...messages.keys()].pop();
 
       if (deletableCount >= limit) {
-        break; // Exit the loop if we've reached the limit of deletable messages
+        break;
       }
     }
 
     return result;
   }
 
-  logMessages(
-    messages: { id: bigint; age: number; content: string }[],
-  ): void {
+  logMessages(messages: FetchableMessage[]): void {
     log.info("Messages with age in days and content:");
     messages.forEach((msg, index) => {
       log.info(
@@ -74,7 +78,7 @@ export class MessageCleaner {
   }
 
   async deleteMessages(
-    messages: { id: bigint; age: number; content: string }[],
+    messages: FetchableMessage[],
   ): Promise<{ successCount: number; errorCount: number }> {
     let successCount = 0;
     let errorCount = 0;
@@ -83,11 +87,13 @@ export class MessageCleaner {
       try {
         await this.bot.helpers.deleteMessage(this.channelId, msg.id);
         successCount++;
-      } catch (deleteError) {
+      } catch (deleteError: unknown) {
         errorCount++;
         log.error(
-          `Failed to delete message ${msg.id} (Content: "${msg.content}"):`,
-          deleteError,
+          `Failed to delete message ${msg.id} (Content: "${msg.content}"): `,
+          deleteError instanceof Error
+            ? deleteError.toString()
+            : String(deleteError),
         );
       }
     }

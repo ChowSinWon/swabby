@@ -6,6 +6,10 @@ import { MessageCleaner } from "utils/message-cleaner.ts";
 
 const log = logger({ name: "Command: Clean" });
 
+const DEFAULT_COUNT = 10;
+const MAX_COUNT = 50;
+const DEFAULT_DAYS = 0;
+
 createCommand({
   name: "clean",
   description:
@@ -17,37 +21,31 @@ createCommand({
       description: "Number of messages to delete",
       type: ApplicationCommandOptionTypes.Integer,
       required: false,
+      minValue: 1,
+      maxValue: MAX_COUNT,
     },
     {
       name: "days",
-      description: "Just scrub dirt that is older than X days. Default: 0",
+      description: "Just scrub messages older than X days. Default: 0",
       type: ApplicationCommandOptionTypes.Integer,
       required: false,
+      minValue: 0,
     },
   ],
   scope: "Guild",
   execute: async (bot, interaction) => {
-    const countOption = interaction.data?.options?.find((option) =>
-      option.name === "count"
+    const countOption = interaction.data?.options?.find(
+      (option) => option.name === "count",
     );
-    const daysOption = interaction.data?.options?.find((option) =>
-      option.name === "days"
+    const daysOption = interaction.data?.options?.find(
+      (option) => option.name === "days",
     );
 
-    let count = Number(countOption?.value || 10);
-    let days = Number(daysOption?.value || 0);
-
-    if (count < 1) {
-      count = 1;
-    }
-
-    if (count > 50) {
-      count = 50;
-    }
-
-    if (days < 0) {
-      days = 0;
-    }
+    const count = Math.min(
+      Math.max(Number(countOption?.value || DEFAULT_COUNT), 1),
+      MAX_COUNT,
+    );
+    const days = Math.max(Number(daysOption?.value || DEFAULT_DAYS), 0);
 
     const channelId = interaction.channelId;
 
@@ -58,7 +56,6 @@ createCommand({
         "This command can only be used in a channel.",
         true,
       );
-
       return;
     }
 
@@ -73,45 +70,40 @@ createCommand({
       } else {
         log.info(logMessage);
       }
-    } catch (error) {
-      log.error(error.toString());
+    } catch (error: unknown) {
+      log.error(
+        error instanceof Error ? error.toString() : String(error),
+      );
 
-      let message = "I am sorry, I forgot what to do :grimacing:";
-      if (error.toString().includes("Missing Access")) {
-        message = "I'm sorry, this deck is off limits for me.";
+      let message = "I am sorry, I forgot what to do 😬";
+      if (
+        error instanceof Error &&
+        error.toString().includes("Missing Access")
+      ) {
+        message = "I'm sorry, I don't have access to this channel.";
       }
 
       await send(bot, interaction, message);
-
       return;
     }
 
     const messageCleaner = new MessageCleaner(bot, channelId);
 
     try {
-      const messages = await bot.helpers.getMessages(channelId, {
-        limit: count,
-      });
-
-      if (!messages || messages.size === 0) {
+      const messagesWithAge = await messageCleaner.fetchMessages(count, days);
+      if (messagesWithAge.length === 0) {
         await send(
           bot,
           interaction,
-          "No messages found in this channel.",
+          "No messages found matching the criteria.",
           true,
         );
-
         return;
       }
 
-      const messagesWithAge = await messageCleaner.fetchMessages(count, days);
       messageCleaner.logMessages(messagesWithAge);
 
-      await sendInteractiveResponse(
-        bot,
-        interaction,
-        "sweeping...",
-      );
+      await sendInteractiveResponse(bot, interaction, "Sweeping messages...");
 
       const { successCount, errorCount } = await messageCleaner.deleteMessages(
         messagesWithAge,
@@ -121,7 +113,7 @@ createCommand({
         limit: 1,
       });
 
-      const [myMessageId, _value] = myMessages?.entries()?.next()?.value;
+      const [myMessageId] = myMessages?.keys() || [];
 
       if (myMessageId) {
         await bot.helpers.deleteMessage(channelId, myMessageId);
@@ -131,20 +123,20 @@ createCommand({
         bot,
         interaction,
         errorCount > 0
-          ? `Deleted only ${successCount} of ${messages.size} messages.`
-          : `Deck has been scrubbed - have fun!\n${successCount} message${
-            successCount > 1 ? "s" : ""
-          } removed.`,
+          ? `Deleted ${successCount} out of ${messagesWithAge.length} messages.`
+          : `Successfully deleted ${successCount} messages.`,
         true,
         true,
       );
-    } catch (error) {
-      log.error(error);
+    } catch (error: unknown) {
+      log.error(
+        error instanceof Error ? error.toString() : String(error),
+      );
 
       await send(
         bot,
         interaction,
-        "Failed to wipe messages. Please try again later.",
+        "Failed to delete messages. Please try again later.",
         true,
       );
     }
