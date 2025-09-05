@@ -1,8 +1,8 @@
 {
-  "version": "3",
+  "version": "5",
   "remote": {
-    "https://cdn.skypack.dev/-/luxon@v3.5.0-1yhqrXTfbvV0FXkFfI3B/dist=es2019,mode=imports/optimized/luxon.js": "d6cd438e6dcc98f71d1e60581ad298508a89f3952cefa61cf134a5f782e6db1d",
-    "https://cdn.skypack.dev/luxon": "56c31c3d2bf9a12ba409c30692b1a4470069fee1c60cc6d52bd42af22c52d896",
+    "https://cdn.skypack.dev/-/luxon@v3.7.2-NETHR26THRy49G62kPow/dist=es2019,mode=imports/optimized/luxon.js": "a65cdee5ecb6d264496c01d80103305f4b11651ffa598634304bd7be284ab33a",
+    "https://cdn.skypack.dev/luxon": "e15de479a325a771564b7dd984d6fbbcc6540041a9ba98e423f99c0f7265f7bd",
     "https://deno.land/std@0.117.0/fmt/colors.ts": "8368ddf2d48dfe413ffd04cdbb7ae6a1009cf0dccc9c7ff1d76259d9c61a0621",
     "https://deno.land/std@0.187.0/_util/asserts.ts": "178dfc49a464aee693a7e285567b3d0b555dc805ff490505a8aae34f9cfb1462",
     "https://deno.land/std@0.187.0/_util/os.ts": "d932f56d41e4f6a6093d56044e29ce637f8dcc43c5a90af43504a889cf1775e3",
