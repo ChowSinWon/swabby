@@ -24,13 +24,13 @@ createCommand({
       minValue: 1,
       maxValue: MAX_COUNT,
     },
-    {
-      name: "days",
-      description: "Just scrub messages older than X days. Default: 0",
-      type: ApplicationCommandOptionTypes.Integer,
-      required: false,
-      minValue: 0,
-    },
+    // {
+    //   name: "days",
+    //   description: "Just scrub messages older than X days. Default: 0",
+    //   type: ApplicationCommandOptionTypes.Integer,
+    //   required: false,
+    //   minValue: 0,
+    // },
   ],
   scope: "Guild",
   execute: async (bot, interaction) => {
@@ -50,12 +50,19 @@ createCommand({
     const channelId = interaction.channelId;
 
     if (!channelId) {
-      await send(
-        bot,
-        interaction,
-        "This command can only be used in a channel.",
-        true,
-      );
+      try {
+        await send(
+          bot,
+          interaction,
+          "This command can only be used in a channel.",
+          true,
+        );
+      } catch (error: unknown) {
+        log.warn(
+          'Unable to send message',
+          error instanceof Error ? error.toString() : String(error),
+        );
+      }
       return;
     }
 
@@ -83,7 +90,14 @@ createCommand({
         message = "I'm sorry, I don't have access to this channel.";
       }
 
-      await send(bot, interaction, message);
+      try {
+        await send(bot, interaction, message);
+      } catch (error: unknown) {
+        log.warn(
+          'Unable to send message',
+          error instanceof Error ? error.toString() : String(error),
+        );
+      }
       return;
     }
 
@@ -133,12 +147,19 @@ createCommand({
         error instanceof Error ? error.toString() : String(error),
       );
 
-      await send(
-        bot,
-        interaction,
-        "Failed to delete messages. Please try again later.",
-        true,
-      );
+      try {
+        await send(
+          bot,
+          interaction,
+          "Failed to delete messages. Please try again later.",
+          true,
+        );
+      } catch (error: unknown) {
+        log.warn(
+          'Unable to send message',
+          error instanceof Error ? error.toString() : String(error),
+        );
+      }
     }
   },
 });
