@@ -7,8 +7,8 @@ import {
   validatePermissions,
 } from "deps";
 
-export async function defer(bot: Bot, interaction: Interaction) {
-  await bot.helpers.sendInteractionResponse(
+export async function defer(bot: Bot, interaction: Interaction): Promise<any> {
+  return await bot.helpers.sendInteractionResponse(
     interaction.id,
     interaction.token,
     {
@@ -22,7 +22,7 @@ export async function sendFollowupMessage(
   token: string,
   message: string,
   isEphemeral = false,
-) {
+): Promise<any> {
   return await bot.helpers.sendFollowupMessage(
     token,
     {
@@ -54,21 +54,21 @@ export async function send(
   message: string,
   first = true,
   isEphemeral = false,
-): Promise<void> {
-  if (!interaction.channelId) {
-    throw new Error("unable to retrieve channel ID!");
+): Promise<any> {
+  if (!interaction.channelId || !interaction.guildId) {
+    throw new Error("unable to retrieve channel or guild ID!");
   }
 
   if (first) {
-    await defer(bot, interaction);
-    await sendFollowupMessage(
-      bot,
-      interaction.token,
-      message,
-      isEphemeral,
-    );
+    return await defer(bot, interaction)
+      && await sendFollowupMessage(
+        bot,
+        interaction.token,
+        message,
+        isEphemeral,
+      );
   } else {
-    await sendMessage(
+    return await sendMessage(
       bot,
       interaction.channelId.toString(),
       message,
